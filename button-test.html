@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Buton Test</title>
+</head>
+
+<body>
+    <h1>Buton Çalışma Testi</h1>
+
+    <button onclick="testClick()">Test Butonu</button>
+    <p id="result"></p>
+
+    <script>
+        function testClick() {
+            document.getElementById('result').textContent = 'Buton çalışıyor! ✓';
+            console.log('Test butonu tıklandı');
+        }
+
+        console.log('Sayfa yüklendi');
+    </script>
+
+    <hr>
+    <p>Eğer yukarıdaki buton çalışıyorsa, tarayıcınız JavaScript'i destekliyor demektir.</p>
+    <p>Şimdi <code>index.html</code> dosyasını açın ve tarayıcı konsolunu (F12) kontrol edin.</p>
+</body>
+
+</html>

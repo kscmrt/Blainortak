@@ -760,13 +760,18 @@ async function loadProject(projectNumber) {
 }
 
 async function loadProjectsList(searchTerm = '', statusFilter = 'all') {
-    const tbody = document.getElementById('projectsTableBody');
-    if (!tbody) return; // Not on All Projects page
+    const tbody = document.getElementById('projectsListBody');
+    if (!tbody) {
+        console.log('projectsListBody not found - not on all-projects page');
+        return; // Not on All Projects page
+    }
 
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center p-4">Yükleniyor...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="text-center p-4">Yükleniyor...</td></tr>';
 
     try {
+        console.log('Fetching projects from database...');
         const projects = await db.projects.getAll();
+        console.log('Projects fetched:', projects.length, projects);
 
         const filtered = projects.filter(p => {
             const matchesSearch = (
@@ -777,8 +782,10 @@ async function loadProjectsList(searchTerm = '', statusFilter = 'all') {
             return matchesSearch && matchesStatus;
         });
 
+        console.log('Filtered projects:', filtered.length);
+
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center p-4">Kayıtlı proje bulunamadı.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center p-4">Kayıtlı proje bulunamadı.</td></tr>';
             return;
         }
 
@@ -790,14 +797,22 @@ async function loadProjectsList(searchTerm = '', statusFilter = 'all') {
 
             const dateStr = new Date(p.created_at).toLocaleDateString('tr-TR');
             const cylInfo = p.selected_cylinder ? p.selected_cylinder : '-';
+            const motorInfo = p.components?.motor || '-';
+            const pumpInfo = p.components?.pump || '-';
+            const accCount = (p.components?.allAccessories || []).length;
+            const userInfo = p.created_by || '-';
 
             return `
                 <tr>
                     <td><strong>${p.project_number}</strong></td>
                     <td>${p.customer_name}</td>
-                    <td>${cylInfo}</td>
                     <td>${dateStr}</td>
                     <td>${statusBadge}</td>
+                    <td>${cylInfo}</td>
+                    <td>${motorInfo}</td>
+                    <td>${pumpInfo}</td>
+                    <td>${accCount > 0 ? accCount + ' adet' : '-'}</td>
+                    <td>${userInfo}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-primary" onclick="loadProject('${p.project_number}')">
                             <i class="ri-edit-line"></i>
@@ -811,7 +826,8 @@ async function loadProjectsList(searchTerm = '', statusFilter = 'all') {
         }).join('');
 
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-danger">Hata: ${e.message}</td></tr>`;
+        console.error('Error loading projects:', e);
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center p-4 text-danger">Hata: ${e.message}</td></tr>`;
     }
 }
 

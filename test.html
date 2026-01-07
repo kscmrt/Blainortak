@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test</title>
+</head>
+
+<body>
+    <h1>JavaScript Test</h1>
+    <button onclick="alert('Button works!')">Test Button</button>
+
+    <script src="data.js"></script>
+    <script src="db.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+
+    <script>
+        console.log('Test file loaded');
+        console.log('db exists:', typeof db !== 'undefined');
+        console.log('Auth exists:', typeof Auth !== 'undefined');
+        console.log('calculateBtn listener:', document.getElementById('calculateBtn'));
+
+        // Check for any errors
+        window.addEventListener('error', function (e) {
+            alert('ERROR: ' + e.message + ' at ' + e.filename + ':' + e.lineno);
+        });
+    </script>
+</body>
+
+</html>
