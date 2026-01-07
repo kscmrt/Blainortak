@@ -72,8 +72,12 @@
 
                 </div>
                 <div class="header-right">
-                    <button type="button" id="headerSaveBtn" class="btn btn-primary" onclick="saveOrUpdateProject()"
-                        disabled>
+                    <span id="projectStatusBadge" class="badge badge-outline hidden"
+                        style="margin-right: 1rem;">Taslak</span>
+                    <button id="createProposalBtn" class="btn btn-secondary hidden" style="margin-right: 0.5rem;">
+                        <i class="ri-file-text-line"></i> Teklif Al
+                    </button>
+                    <button id="headerSaveBtn" class="btn btn-primary" onclick="saveOrUpdateProject()" disabled>
                         <i class="ri-save-3-line"></i> Projeyi Kaydet
                     </button>
                 </div>

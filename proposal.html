@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teklif Formu - Blain Hydraulics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #18181b;
+            --muted: #f4f4f5;
+            --border: #e4e4e7;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f4f5;
+            color: #09090b;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm 15mm;
+            margin: 20px auto;
+            background: #fff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .logo-area img {
+            height: 40px;
+            width: auto;
+            margin-bottom: 8px;
+        }
+
+        .company-info {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #555;
+        }
+
+        .doc-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin-top: 10px;
+        }
+
+        /* Info Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .info-box h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #777;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .info-label {
+            font-weight: 500;
+            color: #555;
+        }
+
+        .info-val {
+            font-weight: 600;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+        }
+
+        th {
+            background-color: var(--muted);
+            text-align: left;
+            padding: 8px 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            border-bottom: 1px solid #ccc;
+        }
+
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .price-col {
+            text-align: right;
+            font-weight: 600;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .total-section {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid var(--primary);
+        }
+
+        .total-box {
+            width: 250px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .total-row.final {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-top: 10px;
+            color: var(--primary);
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            font-size: 0.75rem;
+            color: #777;
+            text-align: center;
+        }
+
+        /* No Print */
+        .no-print {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        @media print {
+            body {
+                background: #fff;
+                margin: 0;
+            }
+
+            .page {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                min-height: auto;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="no-print">
+        <button class="btn" onclick="window.print()">
+            <i class="ri-printer-line"></i> Yazdır / PDF
+        </button>
+        <button class="btn" onclick="window.close()" style="background: #ef4444;">
+            <i class="ri-close-line"></i> Kapat
+        </button>
+    </div>
+
+    <div class="page" id="proposalContent">
+        <div style="text-align:center; padding: 50px; color: #777;">Yükleniyor...</div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="db.js"></script>
+    <script src="data.js"></script>
+    <script>
+        // Copy of calculation logic strictly for proposal generation
+        // To ensure consistency with app.js
+
+        function calculateCylinderPrice(cylinderType, strokeMeters, quantity, isTwoPiece = false) {
+            const pricing = cylinderPricing[cylinderType];
+            if (!pricing) return 0;
+            let baseCost = pricing.fixed + (pricing.perMeter * strokeMeters);
+            if (isTwoPiece) baseCost += pricing.additional;
+            return (baseCost * 1.16 * 1.30) * quantity;
+        }
+
+        function calculateHoseCost(mainDia, mainLen, cylDia, cylLen, cylCount) {
+            // Basic implementation of hose cost if not imported or different
+            // Check if data.js calculates it? Yes data.js has calculateHoseCost
+            // We can use the global one from data.js
+            if (typeof window.calculateHoseCost === 'function') {
+                return window.calculateHoseCost(mainDia, mainLen, cylDia, cylLen, cylCount);
+            }
+            return 0;
+        }
+
+        async function init() {
+            // 1. Get Project ID
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectId = urlParams.get('id');
+
+            if (!projectId) {
+                document.getElementById('proposalContent').innerHTML = '<h3 style="color:red; text-align:center;">Proje ID bulunamadı!</h3>';
+                return;
+            }
+
+            // 2. Load Materials
+            try {
+                if (window.loadMaterialsFromDB) await window.loadMaterialsFromDB();
+            } catch (e) { console.error('Material loading error', e); }
+
+            // 3. Load Project
+            try {
+                const projects = await db.projects.getAll(); // Or getOne if available in API
+                const project = projects.find(p => p.project_number === projectId);
+
+                if (!project) {
+                    throw new Error('Proje bulunamadı.');
+                }
+
+                renderProposal(project);
+
+            } catch (e) {
+                document.getElementById('proposalContent').innerHTML = `<h3 style="color:red; text-align:center;">Hata: ${e.message}</h3>`;
+            }
+        }
+
+        function renderProposal(project) {
+            const inputs = project.inputs || {};
+            const comps = project.components || {};
+            const createdDate = new Date(project.created_at || Date.now()).toLocaleDateString('tr-TR');
+
+            // --- Calculation ---
+            // Re-run cost calculation to ensure accuracy
+            let totalCost = 0;
+            const items = [];
+
+            // 1. Cylinders
+            const cylCount = parseInt(inputs.cylinderCount || 1);
+            if (project.selected_cylinder && comps.includeCylinder !== false) {
+                const suspension = inputs.suspension || '2:1';
+                const travelDist = parseFloat(inputs.travelDistance || 0);
+                const buffer = parseFloat(inputs.buffer || 300);
+                const strokeMM = suspension === '1:1' ? (travelDist + buffer) : (travelDist + buffer) / 2;
+                const strokeMeters = strokeMM / 1000;
+
+                const cost = calculateCylinderPrice(project.selected_cylinder, strokeMeters, cylCount, comps.twoPieceCylinder);
+                items.push({
+                    name: `Silindir (${project.selected_cylinder}) - ${comps.twoPieceCylinder ? 'İki Parça' : 'Tek Parça'}`,
+                    qty: cylCount,
+                    price: cost
+                });
+            }
+
+            // 2. Motor
+            if (comps.motor) {
+                const m = motors.find(x => x.name === comps.motor);
+                if (m) items.push({ name: `Motor (${comps.motor})`, qty: 1, price: m.price });
+            }
+
+            // 3. Pump
+            if (comps.pump) {
+                const p = pumps.find(x => x.name === comps.pump);
+                if (p) items.push({ name: `Pompa (${comps.pump})`, qty: 1, price: p.price });
+            }
+
+            // 4. Power Unit
+            if (comps.powerUnit) {
+                const u = powerUnits.find(x => x.model === comps.powerUnit);
+                if (u) {
+                    let cost = u.price;
+                    let desc = `Güç Ünitesi (${comps.powerUnit})`;
+
+                    // Check hoses
+                    const hasHoses = comps.allAccessories && comps.allAccessories.includes("Güç Ünitesi Hortumları");
+                    if (hasHoses && comps.hoses) {
+                        const h = comps.hoses;
+                        if (typeof window.calculateHoseCost === 'function') {
+                            cost += window.calculateHoseCost(h.mainDiameter, h.mainLength, h.cylinderDiameter, h.cylinderLength, cylCount);
+                            desc += " + Hortum Seti";
+                        }
+                    }
+
+                    items.push({ name: desc, qty: 1, price: cost });
+                }
+            }
+
+            // 5. Valves
+            if (comps.mainValve) {
+                const v = mainValves.find(x => x.name === comps.mainValve);
+                if (v) items.push({ name: `Ana Kontrol Valfi (${comps.mainValve})`, qty: 1, price: v.price });
+            }
+
+            if (comps.ruptureValve && comps.ruptureValve !== 'Yok') {
+                const v = burstHoseValves.find(x => x.name === comps.ruptureValve);
+                if (v) items.push({ name: `Patlak Hortum Valfi`, qty: cylCount, price: v.price * cylCount });
+            }
+
+            // 6. Accessories
+            if (comps.allAccessories) {
+                comps.allAccessories.forEach(accName => {
+                    if (accName === "Güç Ünitesi Hortumları") return; // Handled above
+
+                    // KV Ball Valve Logic
+                    if (accName === "Küresel Vana BG") {
+                        let price = 42;
+                        const mv = comps.mainValve || "";
+                        if (mv.includes("KV")) price = 24;
+                        else if (mv.includes("1,5")) price = 67;
+                        else if (mv.includes("2''") || mv.includes("2.0")) price = 77;
+
+                        items.push({ name: accName, qty: 1, price: price });
+                        return;
+                    }
+
+                    const a = accessories.find(x => x.name === accName);
+                    if (a) items.push({ name: a.name, qty: 1, price: a.price });
+                });
+            }
+
+            totalCost = items.reduce((sum, item) => sum + item.price, 0);
+
+            // --- HTML Generation ---
+            const html = `
+                <div class="header">
+                    <div class="logo-area">
+                        <!-- Placeholder Logo -->
+                        <div style="font-size: 24px; font-weight: 800; color: #18181b;">BLAIN</div>
+                        <div style="font-size: 10px; font-weight: 600; color: #555;">HYDRAULICS</div>
+                    </div>
+                    <div class="company-info">
+                        <strong>Blain Hydraulics GmbH</strong><br>
+                        Pfingstweidstraße 19<br>
+                        74366 Kirchheim am Neckar, Germany<br>
+                        info@blain.de | www.blain.de
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 30px;">
+                    <div>
+                        <div style="font-size: 0.8rem; color: #777;">Sayın Müşteri,</div>
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #000;">${project.customer_name || 'İsimsiz Müşteri'}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <h1 class="doc-title">Fiyat Teklifi</h1>
+                        <div style="font-size: 0.9rem; color: #555;">
+                            No: <strong>${project.project_number}</strong><br>
+                            Tarih: ${createdDate}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-box">
+                        <h3>Asansör Bilgileri</h3>
+                        <div class="info-row"><span class="info-label">Kapasite:</span> <span class="info-val">${inputs.capacity} kg</span></div>
+                        <div class="info-row"><span class="info-label">Kabin Ağırlığı:</span> <span class="info-val">${inputs.carcassWeight} kg</span></div>
+                        <div class="info-row"><span class="info-label">Seyir Mesafesi:</span> <span class="info-val">${inputs.travelDistance} mm</span></div>
+                        <div class="info-row"><span class="info-label">Hız:</span> <span class="info-val">${inputs.speed} m/s</span></div>
+                    </div>
+                    <div class="info-box">
+                        <h3>Sistem Özellikleri</h3>
+                        <div class="info-row"><span class="info-label">Süspansiyon:</span> <span class="info-val">${inputs.suspension}</span></div>
+                        <div class="info-row"><span class="info-label">Silindir Sayısı:</span> <span class="info-val">${inputs.cylinderCount}</span></div>
+                        <div class="info-row"><span class="info-label">Yönetmelik:</span> <span class="info-val">${inputs.regulation}</span></div>
+                        <div class="info-row"><span class="info-label">Voltaj:</span> <span class="info-val">${comps.voltage || '380'}V</span></div>
+                    </div>
+                </div>
+
+                <h3>Malzeme Listesi</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Malzeme / Hizmet</th>
+                            <th style="width: 80px; text-align: center;">Miktar</th>
+                            <th style="width: 120px; text-align: right;">Birim Fiyat</th>
+                            <th style="width: 120px; text-align: right;">Toplam</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(item => `
+                            <tr>
+                                <td>${item.name}</td>
+                                <td style="text-align: center;">${item.qty}</td>
+                                <td class="price-col">${(item.price / item.qty).toFixed(0)} €</td>
+                                <td class="price-col">${item.price.toFixed(0)} €</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+
+                <div class="total-section">
+                    <div class="total-box">
+                        <div class="total-row">
+                            <span>Ara Toplam:</span>
+                            <span>${totalCost.toFixed(0)} €</span>
+                        </div>
+                        <div class="total-row final">
+                            <span>GENEL TOPLAM:</span>
+                            <span>${totalCost.toFixed(0)} €</span>
+                        </div>
+                        <div style="text-align: right; font-size: 0.75rem; color: #777; margin-top: 5px;">
+                            (KDV Hariçtir)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="footer">
+                    <p>Bu teklif 30 gün süreyle geçerlidir. Ödeme ve teslimat şartları standart sözleşme hükümlerine tabidir.</p>
+                </div>
+            `;
+
+            document.getElementById('proposalContent').innerHTML = html;
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

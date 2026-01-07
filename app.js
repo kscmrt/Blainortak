@@ -26,7 +26,9 @@ function getFormData() {
             ruptureValve: document.getElementById('ruptureSelect') ? document.getElementById('ruptureSelect').value : null,
             mainValve: document.getElementById('mainValveSelect') ? document.getElementById('mainValveSelect').value : null,
             voltage: document.getElementById('voltageSelect') ? document.getElementById('voltageSelect').value : null,
+            voltage: document.getElementById('voltageSelect') ? document.getElementById('voltageSelect').value : null,
             twoPieceCylinder: document.getElementById('twoPieceCylinder') ? document.getElementById('twoPieceCylinder').checked : false,
+            includeCylinder: document.getElementById('includeCylinder') ? document.getElementById('includeCylinder').checked : true,
             hoses: {
                 mainDiameter: document.getElementById('mainHoseDiameter') ? document.getElementById('mainHoseDiameter').value : null,
                 mainLength: document.getElementById('mainHoseLength') ? document.getElementById('mainHoseLength').value : null,
@@ -118,7 +120,7 @@ function calculateSystemCost(selectedComponents) {
     };
 
     // Cylinders
-    if (selectedComponents.cylinder) {
+    if (selectedComponents.cylinder && selectedComponents.cylinder.included !== false) {
         const { cylinderType, strokeMeters, quantity, isTwoPiece } = selectedComponents.cylinder;
         breakdown.cylinders = calculateCylinderPrice(cylinderType, strokeMeters, quantity, isTwoPiece);
     }
@@ -420,6 +422,10 @@ async function resetToNewProject() {
         headerBtn.disabled = true;
     }
 
+    // Hide Proposal Button
+    const proposalBtn = document.getElementById('createProposalBtn');
+    if (proposalBtn) proposalBtn.classList.add('hidden');
+
     // Disable header save button until selection is made
     const headerSaveBtn = document.getElementById('headerSaveBtn');
     if (headerSaveBtn) headerSaveBtn.disabled = true;
@@ -547,7 +553,9 @@ async function updateProject() {
                 ruptureValve: document.getElementById('ruptureSelect') ? document.getElementById('ruptureSelect').value : null,
                 mainValve: document.getElementById('mainValveSelect') ? document.getElementById('mainValveSelect').value : null,
                 voltage: document.getElementById('voltageSelect') ? document.getElementById('voltageSelect').value : null,
+                voltage: document.getElementById('voltageSelect') ? document.getElementById('voltageSelect').value : null,
                 twoPieceCylinder: document.getElementById('twoPieceCylinder') ? document.getElementById('twoPieceCylinder').checked : false,
+                includeCylinder: document.getElementById('includeCylinder') ? document.getElementById('includeCylinder').checked : true,
                 hoses: {
                     mainDiameter: document.getElementById('mainHoseDiameter') ? document.getElementById('mainHoseDiameter').value : null,
                     mainLength: document.getElementById('mainHoseLength') ? document.getElementById('mainHoseLength').value : null,
@@ -697,6 +705,10 @@ async function loadProject(projectNumber) {
                     const twoPiece = document.getElementById('twoPieceCylinder');
                     if (twoPiece) twoPiece.checked = comps.twoPieceCylinder || false;
 
+                    // Restore Include Cylinder
+                    const includeCyl = document.getElementById('includeCylinder');
+                    if (includeCyl) includeCyl.checked = (comps.includeCylinder !== undefined) ? comps.includeCylinder : true;
+
                     // Restore Accessories
                     const accList = comps.allAccessories || [];
                     accessories.forEach((acc, idx) => {
@@ -759,6 +771,10 @@ async function loadProject(projectNumber) {
             headerBtn.disabled = true; // disabled until change
             headerBtn.classList.add('opacity-50', 'cursor-not-allowed');
         }
+
+        // Show Proposal Button
+        const proposalBtn = document.getElementById('createProposalBtn');
+        if (proposalBtn) proposalBtn.classList.remove('hidden');
 
     } catch (e) {
         showStatusModal('Hata', 'Proje yüklenemedi: ' + e.message, 'error');
@@ -1439,7 +1455,13 @@ function renderSelection(cylinder, q_req, recommendedPump, speed_eff, p_req, rec
                 <div class="summary-metric">
                     <span class="label">Seçilen Silindir</span>
                     <span class="value">${cylinder.type}</span>
-                    <span class="sub-value">${cylinderCount} adet</span>
+                    <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                         <label class="switch" style="transform: scale(0.8);">
+                            <input type="checkbox" id="includeCylinder" checked onchange="updateCylinderPricing()">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="sub-value" style="font-size: 0.75rem;">Dahil Et</span>
+                    </div>
                 </div>
                 <div class="summary-metric">
                     <span class="label">Efektif Hız</span>
@@ -1659,20 +1681,38 @@ function renderSelection(cylinder, q_req, recommendedPump, speed_eff, p_req, rec
                     <span id="accessoryCostDisplay" class="text-primary font-bold" style="font-size: 1.1rem; margin-left: auto;">0 €</span>
                 </div>
                 <div class="panel-body">
-                    <div class="accessories-grid">
-                        ${accessories.map((acc, index) => `
-                            <div class="accessory-item">
-                                <input type="checkbox" id="acc_${index}" ${acc.included ? 'checked' : ''} 
-                                       onchange="updateAccessoryStatus(${index})">
-                                <label for="acc_${index}">
-                                    ${acc.name}
-                                    <span class="category">${acc.category}</span>
-                                </label>
-                                <span id="acc_status_${index}" class="status-badge ${acc.included ? 'success' : 'error'}" style="display:none;">
-                                    ${acc.included ? 'Dahil' : 'Dahil Değildir'}
-                                </span>
-                            </div>
-                        `).join('')}
+                    <div class="accessories-container">
+                        ${(() => {
+            const grouped = accessories.reduce((acc, item, index) => {
+                const cat = item.category || 'Diğer';
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push({ ...item, originalIndex: index });
+                return acc;
+            }, {});
+
+            return Object.entries(grouped).map(([category, items]) => `
+                                <div class="acc-category-group">
+                                    <h4 class="acc-category-title">${category}</h4>
+                                    <div class="acc-grid">
+                                        ${items.map(item => `
+                                            <div class="acc-card ${item.included ? 'active' : ''}" onclick="document.getElementById('acc_${item.originalIndex}').click()">
+                                                <div class="acc-info">
+                                                    <span class="acc-name">${item.name}</span>
+                                                    <span class="acc-price">${item.price} €</span>
+                                                </div>
+                                                <div class="acc-icon">
+                                                    <i class="${item.included ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'}"></i>
+                                                </div>
+                                                <input type="checkbox" id="acc_${item.originalIndex}" 
+                                                       ${item.included ? 'checked' : ''} 
+                                                       style="display:none;" 
+                                                       onchange="updateAccessoryStatus(${item.originalIndex}); event.stopPropagation();">
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `).join('');
+        })()}
                     </div>
                 </div>
             </div>
@@ -1793,6 +1833,7 @@ function updateCylinderPricing() {
 
     // Get selected cylinder type from results
     const cylinderType = selectedCylinder; // This is set when user selects a cylinder
+    const includeCylinder = document.getElementById('includeCylinder')?.checked ?? true;
 
     if (!cylinderType) return;
 
@@ -1816,7 +1857,8 @@ function updateCylinderPricing() {
             cylinderType: cylinderType,
             strokeMeters: strokeMeters,
             quantity: inputCylinderCount,
-            isTwoPiece: isTwoPiece
+            isTwoPiece: isTwoPiece,
+            included: includeCylinder
         },
         motorName: motorName,
         pumpName: pumpName,
@@ -1915,27 +1957,27 @@ function updateHoseCost() {
 
 function updateAccessoryStatus(index) {
     const checkbox = document.getElementById(`acc_${index}`);
-    const statusSpan = document.getElementById(`acc_status_${index}`);
+    if (!checkbox) return;
 
-    if (checkbox && statusSpan) {
-        // Update global accessories array
-        if (accessories[index]) {
-            accessories[index].included = checkbox.checked;
-        }
+    const card = checkbox.closest('.acc-card');
+    const icon = card ? card.querySelector('.acc-icon i') : null;
 
-        if (checkbox.checked) {
-            statusSpan.textContent = 'Dahil';
-            statusSpan.style.background = 'rgba(74, 222, 128, 0.2)';
-            statusSpan.style.color = '#4ade80';
-        } else {
-            statusSpan.textContent = 'Dahil Değildir';
-            statusSpan.style.background = 'rgba(248, 113, 113, 0.2)';
-            statusSpan.style.color = '#f87171';
-        }
-
-        // Recalculate costs when accessories change (especially for power unit hoses)
-        updateCylinderPricing();
+    if (accessories[index]) {
+        accessories[index].included = checkbox.checked;
     }
+
+    if (card) {
+        if (checkbox.checked) {
+            card.classList.add('active');
+            if (icon) icon.className = 'ri-checkbox-circle-fill';
+        } else {
+            card.classList.remove('active');
+            if (icon) icon.className = 'ri-checkbox-blank-circle-line';
+        }
+    }
+
+    // Recalculate costs when accessories change (especially for power unit hoses)
+    updateCylinderPricing();
 }
 
 
@@ -2327,10 +2369,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
             this.value = capitalizedWords.join(' ');
 
-            // Restore cursor
-            this.setSelectionRange(start, end);
-        });
-    }
-});
+            // Proposal Button Logic
+            const createProposalBtn = document.getElementById('createProposalBtn');
+            if (createProposalBtn) {
+                createProposalBtn.addEventListener('click', async () => {
+                    const projectNumber = document.getElementById('projectNumber').value;
+                    const saveBtn = document.getElementById('headerSaveBtn');
+
+                    if (!projectNumber || !isEditMode) {
+                        showStatusModal('Uyarı', 'Teklif alabilmek için önce projeyi kaydetmelisiniz.', 'warning');
+                        return;
+                    }
+
+                    if (!saveBtn.disabled) {
+                        // Unsaved changes
+                        if (confirm('Kaydedilmemiş değişiklikler var. Teklif güncel verilerle oluşturulsun mu? (Otomatik kaydedilecek)')) {
+                            await saveOrUpdateProject();
+                            // Wait a bit for DB propagation if needed, though await should suffice
+                        } else {
+                            return; // Cancelled
+                        }
+                    }
+
+                    window.open(`proposal.html?id=${projectNumber}`, '_blank');
+                });
+            }
 
 
