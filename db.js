@@ -50,6 +50,12 @@ const db = {
             // Get the last project number (ordered descending)
             const result = await db.query('projects?select=project_number&order=project_number.desc&limit=1');
             return result.length > 0 ? result[0] : null;
+        },
+        async getLastByPrefix(prefix) {
+            // Get the last project number matching the prefix (e.g. 2026-01)
+            // Use 'like' operator with wildcard
+            const result = await db.query(`projects?project_number=like.${prefix}*&select=project_number&order=project_number.desc&limit=1`);
+            return result.length > 0 ? result[0] : null;
         }
     },
 

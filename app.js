@@ -327,18 +327,18 @@ async function generateProjectNumber() {
         if (typeof window.db === 'undefined') {
             throw new Error('Database not loaded');
         }
-        const lastProject = await db.projects.getLast();
+
+        // Use robust prefix search
+        const lastProject = await db.projects.getLastByPrefix(currentPrefix);
         let nextCounter = 1;
 
         if (lastProject && lastProject.project_number) {
             const parts = lastProject.project_number.split('-');
+            // Parts: [YYYY, MM, XXXX]
             if (parts.length === 3) {
-                const lastPrefix = `${parts[0]}-${parts[1]}`;
-                if (lastPrefix === currentPrefix) {
-                    const lastCounter = parseInt(parts[2]);
-                    if (!isNaN(lastCounter)) {
-                        nextCounter = lastCounter + 1;
-                    }
+                const lastCounter = parseInt(parts[2]);
+                if (!isNaN(lastCounter)) {
+                    nextCounter = lastCounter + 1;
                 }
             }
         }
@@ -1788,14 +1788,45 @@ function renderSelection(cylinder, q_req, recommendedPump, speed_eff, p_req, rec
         document.getElementById('topTotalCost').textContent = `${totalCost.toFixed(0)} €`;
     }
 
-    // Initial Hose Cost
-    setTimeout(() => updateHoseCost(), 150);
+    // Populate Breakdown Immediately
+    const costBreakdownHTML = `
+        <div class="cost-breakdown-item">
+            <div class="cost-breakdown-label">Silindirler (${costComponents.cylinder.quantity}x)${costComponents.cylinder.isTwoPiece ? ' - İki Parça' : ''}</div>
+            <div class="cost-breakdown-value">${breakdown.cylinders.toFixed(0)} €</div>
+        </div>
+        <div class="cost-breakdown-item">
+            <div class="cost-breakdown-label">Motor</div>
+            <div class="cost-breakdown-value">${breakdown.motor.toFixed(0)} €</div>
+        </div>
+        <div class="cost-breakdown-item">
+            <div class="cost-breakdown-label">Pompa</div>
+            <div class="cost-breakdown-value">${breakdown.pump.toFixed(0)} €</div>
+        </div>
+        <div class="cost-breakdown-item">
+            <div class="cost-breakdown-label">Güç Ünitesi${costComponents.accessories.includes("Güç Ünitesi Hortumları") ? ' (Hortumlu)' : ''}</div>
+            <div class="cost-breakdown-value">${breakdown.powerUnit.toFixed(0)} €</div>
+        </div>
+        <div class="cost-breakdown-item">
+            <div class="cost-breakdown-label">Patlak Hortum Valfi</div>
+            <div class="cost-breakdown-value">${breakdown.ruptureValve.toFixed(0)} €</div>
+        </div>
+        <div class="cost-breakdown-item">
+            <div class="cost-breakdown-label">Ana Kontrol Valfi</div>
+            <div class="cost-breakdown-value">${breakdown.mainValve.toFixed(0)} €</div>
+        </div>
+        <div class="cost-breakdown-item">
+            <div class="cost-breakdown-label">Aksesuarlar</div>
+            <div class="cost-breakdown-value">${breakdown.accessories.toFixed(0)} €</div>
+        </div>
+        `;
+    document.getElementById('costBreakdown').innerHTML = costBreakdownHTML;
 
-    // Update rupture valve options based on cylinder count
-    setTimeout(() => updateRuptureValveOptions(), 100);
-
-    // Trigger updateCylinderPricing to populate breakdown
-    setTimeout(() => updateCylinderPricing(), 200);
+    // Update Accessory Cost Display in Header
+    const accessoryCostDisplay = document.getElementById('accessoryCostDisplay');
+    if (accessoryCostDisplay) {
+        const totalAccessoryDisplay = breakdown.accessories + (breakdown.powerUnitHoseCost || 0);
+        accessoryCostDisplay.textContent = `${totalAccessoryDisplay.toFixed(0)} €`;
+    }
 
 
 
@@ -2369,30 +2400,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
             this.value = capitalizedWords.join(' ');
 
-            // Proposal Button Logic
-            const createProposalBtn = document.getElementById('createProposalBtn');
-            if (createProposalBtn) {
-                createProposalBtn.addEventListener('click', async () => {
-                    const projectNumber = document.getElementById('projectNumber').value;
-                    const saveBtn = document.getElementById('headerSaveBtn');
+            // Restore cursor
+            this.setSelectionRange(start, end);
+        });
+    }
+});
 
-                    if (!projectNumber || !isEditMode) {
-                        showStatusModal('Uyarı', 'Teklif alabilmek için önce projeyi kaydetmelisiniz.', 'warning');
-                        return;
-                    }
+// Proposal Button Logic
+const createProposalBtn = document.getElementById('createProposalBtn');
+if (createProposalBtn) {
+    createProposalBtn.addEventListener('click', async () => {
+        const projectNumber = document.getElementById('projectNumber').value;
+        const saveBtn = document.getElementById('headerSaveBtn');
 
-                    if (!saveBtn.disabled) {
-                        // Unsaved changes
-                        if (confirm('Kaydedilmemiş değişiklikler var. Teklif güncel verilerle oluşturulsun mu? (Otomatik kaydedilecek)')) {
-                            await saveOrUpdateProject();
-                            // Wait a bit for DB propagation if needed, though await should suffice
-                        } else {
-                            return; // Cancelled
-                        }
-                    }
+        if (!projectNumber || !isEditMode) {
+            showStatusModal('Uyarı', 'Teklif alabilmek için önce projeyi kaydetmelisiniz.', 'warning');
+            return;
+        }
 
-                    window.open(`proposal.html?id=${projectNumber}`, '_blank');
-                });
+        if (!saveBtn.disabled) {
+            // Unsaved changes
+            if (confirm('Kaydedilmemiş değişiklikler var. Teklif güncel verilerle oluşturulsun mu? (Otomatik kaydedilecek)')) {
+                await saveOrUpdateProject();
+                // Wait a bit for DB propagation if needed, though await should suffice
+            } else {
+                return; // Cancelled
             }
+        }
+
+        window.open(`proposal.html?id=${projectNumber}`, '_blank');
+    });
+}
 
 
