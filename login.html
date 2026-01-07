@@ -82,7 +82,8 @@
         <div class="error-msg" id="errorMsg"></div>
     </div>
 
-    <script src="db.js"></script><script src="auth.js"></script>
+    <script src="db.js"></script>
+    <script src="auth.js"></script>
     <script>
         document.getElementById('loginBtn').addEventListener('click', handleLogin);
 
@@ -93,22 +94,37 @@
             }
         });
 
-        function handleLogin() {
+        async function handleLogin() {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const errorMsg = document.getElementById('errorMsg');
+            const loginBtn = document.getElementById('loginBtn');
 
             if (!username || !password) {
                 errorMsg.textContent = 'Lütfen tüm alanları doldurun.';
                 return;
             }
 
-            const result = Auth.login(username, password);
+            // Show loading state
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Giriş yapılıyor...';
+            errorMsg.textContent = '';
 
-            if (result.success) {
-                window.location.href = 'index.html';
-            } else {
-                errorMsg.textContent = result.message;
+            try {
+                const result = await Auth.login(username, password);
+
+                if (result.success) {
+                    window.location.href = 'index.html';
+                } else {
+                    errorMsg.textContent = result.message;
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Giriş Yap';
+                }
+            } catch (e) {
+                console.error(e);
+                errorMsg.textContent = 'Bir hata oluştu: ' + e.message;
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Giriş Yap';
             }
         }
     </script>
