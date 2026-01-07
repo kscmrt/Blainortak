@@ -314,42 +314,43 @@ function logChange(action, details) {
 
 
 // Project Number Management
-function generateProjectNumber() {
+async function generateProjectNumber() {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
-    const yearMonth = `${year}-${month}`;
+    const currentPrefix = `${year}-${month}`;
 
     try {
-        // Get stored data
-        // For DB impl, we would need to check db, but for simple counter we can keep localStorage or query DB count.
-        // Let's query DB count or use timestamp to be safe and avoid collisions
-        return `${year}-${month}-${Date.now().toString().slice(-4)}`;
-        let counterData = storedData ? JSON.parse(storedData) : { yearMonth: '', counter: 0 };
+        // Fetch last project from DB
+        const lastProject = await db.projects.getLast();
+        let nextCounter = 1;
 
-        // Reset counter if month changed
-        if (counterData.yearMonth !== yearMonth) {
-            counterData = { yearMonth: yearMonth, counter: 1 };
-        } else {
-            counterData.counter += 1;
+        if (lastProject && lastProject.project_number) {
+            const parts = lastProject.project_number.split('-');
+            if (parts.length === 3) {
+                const lastPrefix = `${parts[0]}-${parts[1]}`;
+                if (lastPrefix === currentPrefix) {
+                    const lastCounter = parseInt(parts[2]);
+                    if (!isNaN(lastCounter)) {
+                        nextCounter = lastCounter + 1;
+                    }
+                }
+            }
         }
 
-        // Save updated counter
-        localStorage.setItem('projectCounter', JSON.stringify(counterData));
-
-        // Format: 2025-1101 (year-month-counter)
-        return `${yearMonth}${String(counterData.counter).padStart(2, '0')}`;
+        return `${currentPrefix}-${String(nextCounter).padStart(4, '0')}`;
     } catch (e) {
-        console.warn('LocalStorage access failed in generateProjectNumber:', e);
-        // Fallback: use timestamp
-        return `${yearMonth}-${Date.now().toString().slice(-4)}`;
+        console.warn('Failed to generate sequential ID:', e);
+        // Fallback to timestamp if offline or error
+        return `${currentPrefix}-${Date.now().toString().slice(-4)}`;
     }
 }
 
-function initializeProjectNumber() {
+async function initializeProjectNumber() {
     const projectNumberInput = document.getElementById('projectNumber');
     if (projectNumberInput) {
-        projectNumberInput.value = generateProjectNumber();
+        projectNumberInput.value = 'Yükleniyor...';
+        projectNumberInput.value = await generateProjectNumber();
     }
 }
 
@@ -367,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Function to reset to new project mode
-function resetToNewProject() {
+async function resetToNewProject() {
     // Clear form fields
     document.getElementById('customerName').value = '';
     document.getElementById('capacity').value = '';
@@ -386,8 +387,13 @@ function resetToNewProject() {
     if (selectionSection) selectionSection.classList.add('hidden');
 
     // Generate new project number
-    const projectNumber = generateProjectNumber();
-    document.getElementById('projectNumber').value = projectNumber;
+    document.getElementById('projectNumber').value = 'Yükleniyor...';
+    try {
+        const projectNumber = await generateProjectNumber();
+        document.getElementById('projectNumber').value = projectNumber;
+    } catch (e) {
+        console.error(e);
+    }
 
     // Reset state to New Project
     isEditMode = false;
@@ -417,9 +423,12 @@ async function saveProject() {
         showStatusModal('Uyarı', 'Lütfen müşteri adını girin!', 'warning');
         return;
     }
-    // Generate a new project number for each save (increment from last saved)
-    const projectNumber = generateProjectNumber();
-    document.getElementById('projectNumber').value = projectNumber;
+    // Use existing project number or generate new one
+    let projectNumber = document.getElementById('projectNumber').value;
+    if (!projectNumber || projectNumber === 'Yükleniyor...') {
+        projectNumber = await generateProjectNumber();
+        document.getElementById('projectNumber').value = projectNumber;
+    }
 
     // Collect all form data
     const projectData = {

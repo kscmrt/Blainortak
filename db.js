@@ -45,6 +45,11 @@ const db = {
         },
         async delete(projectNumber) {
             return await db.query(`projects?project_number=eq.${projectNumber}`, 'DELETE');
+        },
+        async getLast() {
+            // Get the last project number (ordered descending)
+            const result = await db.query('projects?select=project_number&order=project_number.desc&limit=1');
+            return result.length > 0 ? result[0] : null;
         }
     },
 
