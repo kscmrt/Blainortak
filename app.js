@@ -553,7 +553,7 @@ async function updateProject() {
             }
         };
 
-        await db.projects.update(oldProject.id, projectData);
+        await db.projects.update(projectNumber, projectData);
         showSuccessModal(`Proje ${projectNumber} başarıyla güncellendi!`);
 
     } catch (e) {
@@ -814,10 +814,14 @@ async function loadProjectsList(searchTerm = '', statusFilter = 'all') {
                     <td>${accCount > 0 ? accCount + ' adet' : '-'}</td>
                     <td>${userInfo}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="loadProject('${p.project_number}')">
+                        ${p.status === 'draft' ? `
+                        <button class="btn btn-sm btn-outline-success" onclick="moveToProduction('${p.project_number}')" title="Üretime Al">
+                            <i class="ri-hammer-line"></i>
+                        </button>` : ''}
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadProject('${p.project_number}')" title="Düzenle">
                             <i class="ri-edit-line"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteProject('${p.project_number}')">
+                        <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteProject('${p.project_number}')" title="Sil">
                             <i class="ri-delete-bin-line"></i>
                         </button>
                     </td>
@@ -898,9 +902,18 @@ async function moveToProduction(projectNumber) {
                 return;
             }
 
-            await db.projects.update(project.id, {
+            await db.projects.update(projectNumber, {
                 status: 'production',
                 production_stage: 'imalat'
+            });
+
+            // Log the action
+            await db.production.addLog({
+                project_number: projectNumber,
+                previous_stage: 'Taslak',
+                new_stage: 'İmalat',
+                changed_by: Auth.getCurrentUser()?.username || 'admin',
+                notes: 'Üretime gönderildi'
             });
 
             showStatusModal('Başarılı', `Proje ${projectNumber} üretime alındı!`, 'success');

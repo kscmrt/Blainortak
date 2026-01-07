@@ -68,6 +68,17 @@ const db = {
         async delete(username) {
             return await db.query(`app_users?username=eq.${username}`, 'DELETE');
         }
+    },
+
+    // Production Logs API
+    production: {
+        async addLog(logData) {
+            // logData: { project_number, previous_stage, new_stage, changed_by, notes }
+            return await db.query('production_logs', 'POST', logData);
+        },
+        async getLogs(projectNumber) {
+            return await db.query(`production_logs?project_number=eq.${projectNumber}&order=created_at.desc`);
+        }
     }
 };
 

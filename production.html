@@ -399,7 +399,18 @@
                 // Wait, refreshing whole board might be jarring. 
                 // Let's just update DB then reload to be consistent.
 
-                await db.projects.update(project.id, { production_stage: newStage });
+                const oldStage = project.production_stage || 'imalat';
+
+                await db.projects.update(projectNumber, { production_stage: newStage });
+
+                // Log the movement
+                await db.production.addLog({
+                    project_number: projectNumber,
+                    previous_stage: capitalize(oldStage),
+                    new_stage: capitalize(newStage),
+                    changed_by: Auth.getCurrentUser()?.username || 'admin',
+                    notes: 'Sürükle bırak ile taşındı'
+                });
 
                 loadKanban(); // Refresh UI
             } catch (e) {
@@ -415,24 +426,98 @@
 
             // Build simple detail view
             content.innerHTML = `
-                <div class="grid gap-4">
-                    <div class="p-3 bg-slate-50 rounded border">
-                        <strong>Müşteri:</strong> ${project.customer_name}<br>
-                        <strong>Proje No:</strong> ${project.project_number}
+                 <div class="tabs mb-4" style="display: flex; gap: 1rem; border-bottom: 1px solid #e2e8f0;">
+                    <button class="tab-btn active" onclick="switchTab('info')" style="padding: 0.5rem 1rem; border-bottom: 2px solid var(--primary); font-weight: 500;">Bilgiler</button>
+                    <button class="tab-btn" onclick="switchTab('history')" style="padding: 0.5rem 1rem; color: var(--muted-foreground);">Geçmiş</button>
+                </div>
+
+                <div id="tab-info">
+                    <div class="grid gap-4">
+                        <div class="p-3 bg-slate-50 rounded border">
+                            <strong>Müşteri:</strong> ${project.customer_name}<br>
+                            <strong>Proje No:</strong> ${project.project_number}
+                        </div>
+                        <div>
+                            <strong>Bileşenler:</strong>
+                            <ul class="list-disc pl-5 mt-2">
+                                <li>Silindir: ${project.selected_cylinder || '-'} (${project.inputs.cylinderCount} adet)</li>
+                                <li>Motor: ${project.components?.motor || '-'}</li>
+                                <li>Pompa: ${project.components?.pump || '-'}</li>
+                                <li>Valf: ${project.components?.main_valve || project.components?.mainValve || '-'}</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div>
-                        <strong>Bileşenler:</strong>
-                        <ul class="list-disc pl-5 mt-2">
-                             <li>Silindir: ${project.selected_cylinder || '-'} (${project.inputs.cylinderCount} adet)</li>
-                             <li>Motor: ${project.components?.motor || '-'}</li>
-                             <li>Pompa: ${project.components?.pump || '-'}</li>
-                             <li>Valf: ${project.components?.main_valve || project.components?.mainValve || '-'}</li>
-                        </ul>
+                </div>
+
+                <div id="tab-history" class="hidden">
+                    <div class="space-y-4" id="historyList">
+                        Yükleniyor...
                     </div>
                 </div>
             `;
 
+            // Load history
+            loadProjectHistory(project.project_number);
+
             modal.classList.remove('hidden');
+        }
+
+        async function loadProjectHistory(projectNumber) {
+            try {
+                const logs = await db.production.getLogs(projectNumber);
+                const list = document.getElementById('historyList');
+
+                if (logs.length === 0) {
+                    list.innerHTML = '<p class="text-muted text-sm">Henüz kayıt yok.</p>';
+                    return;
+                }
+
+                list.innerHTML = logs.map(log => `
+                    <div style="padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 0.5rem;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.25rem;">
+                            <span style="font-weight: 600;">${log.previous_stage || '-'} &rarr; ${log.new_stage}</span>
+                            <span class="text-muted">${new Date(log.created_at).toLocaleDateString('tr-TR')} ${new Date(log.created_at).toLocaleTimeString('tr-TR').slice(0, 5)}</span>
+                        </div>
+                        <div class="text-sm text-secondary">
+                            <i class="ri-user-line" style="font-size: 14px; margin-right: 4px;"></i> ${log.changed_by || 'Bilinmiyor'}
+                        </div>
+                        ${log.notes ? `<div class="text-xs text-muted mt-1 italic">${log.notes}</div>` : ''}
+                    </div>
+                `).join('');
+            } catch (e) {
+                document.getElementById('historyList').innerHTML = `<p class="text-danger">Geçmiş yüklenemedi: ${e.message}</p>`;
+            }
+        }
+
+        function switchTab(tabName) {
+            const infoTab = document.getElementById('tab-info');
+            const historyTab = document.getElementById('tab-history');
+            const btns = document.querySelectorAll('.tab-btn');
+
+            if (tabName === 'info') {
+                infoTab.classList.remove('hidden');
+                historyTab.classList.add('hidden');
+                btns[0].style.borderBottom = '2px solid var(--primary)';
+                btns[0].style.color = 'black';
+                btns[0].style.fontWeight = '500';
+                btns[1].style.borderBottom = 'none';
+                btns[1].style.color = 'var(--muted-foreground)';
+                btns[1].style.fontWeight = 'normal';
+            } else {
+                infoTab.classList.add('hidden');
+                historyTab.classList.remove('hidden');
+                btns[1].style.borderBottom = '2px solid var(--primary)';
+                btns[1].style.color = 'black';
+                btns[1].style.fontWeight = '500';
+                btns[0].style.borderBottom = 'none';
+                btns[0].style.color = 'var(--muted-foreground)';
+                btns[0].style.fontWeight = 'normal';
+            }
+        }
+
+        function capitalize(s) {
+            if (typeof s !== 'string') return '';
+            return s.charAt(0).toUpperCase() + s.slice(1);
         }
 
         function closeDetailsModal() {
