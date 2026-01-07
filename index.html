@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blain Hydraulics - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script>
+        // Always keep sidebar collapsed
+        document.documentElement.classList.add('sidebar-collapsed');
+    </script>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img src="logo.png" alt="Blain" class="sidebar-logo-img">
+                    <h2>Blain Türkiye</h2>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-group">
+                    <p class="nav-label">Ana Menü</p>
+                    <button id="newProjectBtn" class="nav-item active">
+                        <i class="ri-add-circle-line icon"></i>
+                        <span>Yeni Proje</span>
+                    </button>
+                    <a href="all-projects.html" id="openProjectsBtn" class="nav-item">
+                        <i class="ri-folder-line icon"></i>
+                        <span>Tüm Projeler</span>
+                    </a>
+                    <button id="openProductionBtn" class="nav-item">
+                        <i class="ri-hammer-line icon"></i>
+                        <span>Üretim Takibi</span>
+                    </button>
+                    <a href="summary_report.html" class="nav-item">
+                        <i class="ri-file-chart-line icon"></i>
+                        <span>İhtiyaç Raporu</span>
+                    </a>
+                </div>
+
+                <div class="nav-group">
+                    <p class="nav-label">Yönetim</p>
+                    <button id="adminPanelBtn" class="nav-item">
+                        <i class="ri-admin-line icon"></i>
+                        <span>Admin Paneli</span>
+                    </button>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="nav-item logout">
+                    <i class="ri-logout-box-line icon"></i>
+                    <span>Çıkış Yap</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <h1 id="pageTitle">Hidrolik Asansör Hesaplayıcı</h1>
+
+                </div>
+                <div class="header-right">
+                    <button type="button" id="headerSaveBtn" class="btn btn-primary" onclick="saveOrUpdateProject()"
+                        disabled>
+                        <i class="ri-save-3-line"></i> Projeyi Kaydet
+                    </button>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-wrapper">
+
+                <!-- Project Form Section -->
+                <section id="projectSection" class="content-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="ri-file-list-3-line" style="margin-right: 8px;"></i>Proje Bilgileri</h3>
+                            <div class="header-actions" style="display: flex; gap: 1rem;">
+
+                                <button type="button" class="btn btn-secondary btn-search-height"
+                                    onclick="resetToNewProject()">
+                                    Sıfırla
+                                </button>
+                                <button type="button" id="calculateBtn" class="btn btn-primary btn-search-height">
+                                    Hesapla ve Silindir Seç
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <form id="elevatorForm">
+                                <div class="form-grid">
+                                    <div class="input-group">
+                                        <label for="projectNumber">Proje Numarası</label>
+                                        <input type="text" id="projectNumber" readonly>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="customerName">Müşteri Adı</label>
+                                        <input type="text" id="customerName" placeholder="Müşteri adını girin" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="capacity">Kapasite (kg)</label>
+                                        <input type="number" id="capacity" placeholder="Örn: 630" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="carcassWeight">Kabin + Karkas Ağırlığı (kg)</label>
+                                        <input type="number" id="carcassWeight" placeholder="Örn: 800" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="travelDistance">Seyir Mesafesi (mm)</label>
+                                        <input type="number" id="travelDistance" placeholder="Örn: 12000" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="buffer">Kayma Payı (mm)</label>
+                                        <input type="number" id="buffer" placeholder="Örn: 300" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="speed">Asansör Hızı (m/s)</label>
+                                        <input type="number" id="speed" step="0.01" placeholder="Örn: 0.63" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="suspension">Askı Tipi</label>
+                                        <select id="suspension">
+                                            <option value="2:1" selected>2:1</option>
+                                            <option value="1:1">1:1</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="cylinderCount">Silindir Sayısı</label>
+                                        <select id="cylinderCount" onchange="updateRuptureValveOptions()">
+                                            <option value="1" selected>1</option>
+                                            <option value="2">2</option>
+                                            <option value="4">4</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="buildingType">Kullanım Türü</label>
+                                        <select id="buildingType" title="Isı hesabı için kullanılır">
+                                            <option value="5">Ev/Yük Tipi (5 kalkış/s'ten az)</option>
+                                            <option value="10" selected>Konut (5-15 kalkış/s)</option>
+                                            <option value="20">Ticari (16-25 kalkış/s)</option>
+                                            <option value="30">Endüstriyel (26-35 kalkış/s)</option>
+                                            <option value="40">Kamu Alanı (35+ kalkış/s)</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group full-width">
+                                        <label for="regulation">Uygulanacak Regülasyon</label>
+                                        <select id="regulation">
+                                            <option value="2006/42/EC">Makine Direktifi (2006/42/EC)</option>
+                                            <option value="EN81-20">EN 81-20</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Results Section -->
+                <section id="resultsSection" class="content-section hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="ri-list-check" style="margin-right: 8px;"></i>Uygun Silindirler</h3>
+                            <div class="status-badges">
+                                <div class="badge-item">
+                                    <span class="label">Min Basınç (Boş)</span>
+                                    <span class="value">≥ 12 Bar</span>
+                                </div>
+                                <div class="badge-item">
+                                    <span class="label">Max Basınç (Dolu)</span>
+                                    <span class="value">≤ 59 Bar</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="table-responsive">
+                                <table id="cylinderTable" class="modern-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Silindir Tipi</th>
+                                            <th>Çap (mm)</th>
+                                            <th>Kalınlık (mm)</th>
+                                            <th>Boş (Bar)</th>
+                                            <th>Dolu (Bar)</th>
+                                            <th>Max. Burkulma</th>
+                                            <th>Etkiyen</th>
+                                            <th>Kullanım %</th>
+                                            <th>Burkulma</th>
+                                            <th>Durum</th>
+                                            <th>Seçim</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Results will be injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Projects List Section (Initially Hidden) -->
+
+
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="logModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close" onclick="closeLogModal()">&times;</span>
+            <h3>Proje Geçmişi</h3>
+            <div id="logContent" class="mt-4"></div>
+        </div>
+    </div>
+
+    <!-- Generic Confirmation Modal -->
+    <div id="confirmationModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <div class="modal-body" style="padding: 2rem 1rem;">
+                <div class="mb-4"
+                    style="width: 64px; height: 64px; border-radius: 50%; background-color: #fee2e2; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem auto;">
+                    <i class="ri-delete-bin-line" style="font-size: 32px; color: var(--danger);"></i>
+                </div>
+                <h3 id="confirmTitle" style="margin-bottom: 0.5rem; font-size: 1.25rem;">Onay</h3>
+                <p id="confirmMessage" class="text-secondary" style="margin-bottom: 1.5rem; white-space: pre-line;"></p>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" style="flex: 1; justify-content: center;"
+                        onclick="closeConfirmationModal()">İptal</button>
+                    <button id="confirmActionBtn" class="btn btn-soft-danger"
+                        style="flex: 1; justify-content: center;"><i class="ri-delete-bin-line"
+                            style="margin-right: 6px;"></i>Sil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Confirmation Modal -->
+    <div id="updateConfirmModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="ri-error-warning-line" style="color: var(--warning); margin-right: 8px;"></i>Değişiklik
+                    Onayı</h3>
+                <span class="close" onclick="cancelUpdate()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p class="mb-4 text-secondary">Aşağıdaki değişiklikler kaydedilecek. Onaylıyor musunuz?</p>
+                <div id="changesSummary" class="changes-list">
+                    <!-- Changes will be injected here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="cancelUpdate()">İptal</button>
+                <button class="btn btn-primary" onclick="confirmUpdate()">Onayla ve Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Modal (Generic for Success, Warning, Error) -->
+    <div id="statusModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <div class="modal-body" style="padding: 2rem 1rem;">
+                <div id="statusIconContainer"
+                    style="width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto;">
+                    <i id="statusIcon" style="font-size: 32px;"></i>
+                </div>
+                <h3 id="statusTitle" style="margin-bottom: 0.5rem; font-size: 1.25rem;"></h3>
+                <p id="statusMessage" class="text-secondary" style="margin-bottom: 1.5rem; white-space: pre-line;"></p>
+                <button class="btn btn-primary" style="width: 100%; justify-content: center;"
+                    onclick="closeStatusModal()">Tamam</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="db.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+    <script src="sidebar.js"></script>
+    <script>
+        // Check Authentication
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!Auth.checkAuth()) return;
+
+            if (Auth.isAdmin()) {
+                document.getElementById('adminPanelBtn').classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+
+</html>

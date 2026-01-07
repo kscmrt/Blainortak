@@ -1,0 +1,19 @@
+# System Files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency directories
+node_modules/
+
+# Optional: Ignore the previous nextjs folder if it's not part of this vanilla build
+nextjs-app/
+
+# Editor directories
+.vscode/
+.idea/

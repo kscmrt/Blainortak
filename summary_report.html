@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İhtiyaç Raporu - Blain Hydraulics</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script>
+        document.documentElement.classList.add('sidebar-collapsed');
+    </script>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img src="logo.png" alt="Blain" class="sidebar-logo-img">
+                    <h2>Blain Türkiye</h2>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-group">
+                    <p class="nav-label">Ana Menü</p>
+                    <a href="index.html" class="nav-item">
+                        <i class="ri-add-circle-line icon"></i>
+                        <span>Yeni Proje</span>
+                    </a>
+                    <a href="all-projects.html" class="nav-item">
+                        <i class="ri-folder-line icon"></i>
+                        <span>Tüm Projeler</span>
+                    </a>
+                    <a href="production.html" class="nav-item">
+                        <i class="ri-hammer-line icon"></i>
+                        <span>Üretim Takibi</span>
+                    </a>
+                    <button class="nav-item active">
+                        <i class="ri-file-chart-line icon"></i>
+                        <span>İhtiyaç Raporu</span>
+                    </button>
+                </div>
+
+                <div class="nav-group">
+                    <p class="nav-label">Yönetim</p>
+                    <a href="admin.html" id="adminPanelBtn" class="nav-item">
+                        <i class="ri-admin-line icon"></i>
+                        <span>Admin Paneli</span>
+                    </a>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="nav-item logout">
+                    <i class="ri-logout-box-line icon"></i>
+                    <span>Çıkış Yap</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <h1 id="pageTitle">İhtiyaç Raporu</h1>
+                </div>
+                <div class="header-right">
+                    <button onclick="window.print()" class="btn btn-secondary">
+                        <i class="ri-printer-line"></i> Yazdır
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <div class="card mb-6">
+                    <div class="card-header">
+                        <h3><i class="ri-pie-chart-line" style="margin-right: 8px;"></i>Üretimdeki Malzeme İhtiyaçları
+                        </h3>
+                        <span class="text-sm text-muted">Sadece "İmalat" aşamasındaki projeler dahildir.</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="reportStats">
+                            <!-- Stats injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Detaylı Liste</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Kategori</th>
+                                        <th>Malzeme Adı</th>
+                                        <th>Toplam Miktar</th>
+                                        <th>Projeler</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="db.js"></script>
+    <script src="auth.js"></script>
+    <script src="sidebar.js"></script>
+    <script>
+        if (!Auth.checkAuth()) {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => Auth.logout());
+
+        document.addEventListener('DOMContentLoaded', generateReport);
+
+        async function generateReport() {
+            document.getElementById('reportStats').innerHTML = '<div class="col-span-full text-center text-muted p-4">Yükleniyor...</div>';
+            document.getElementById('reportTableBody').innerHTML = '<tr><td colspan="4" class="text-center p-4">Yükleniyor...</td></tr>';
+
+            try {
+                const projects = await db.projects.getAll();
+
+                // Filter for Production -> Imalat
+                const activeProjects = projects.filter(p => p.status === 'production' && (!p.production_stage || p.production_stage === 'imalat'));
+
+                if (activeProjects.length === 0) {
+                    document.getElementById('reportStats').innerHTML = '<div class="col-span-full text-center text-muted p-4">İmalatta bekleyen proje bulunmamaktadır.</div>';
+                    document.getElementById('reportTableBody').innerHTML = '<tr><td colspan="4" class="text-center p-4">Veri yok.</td></tr>';
+                    return;
+                }
+
+                // Aggregate Data
+                const needs = {};
+
+                function addNeed(category, name, qty = 1, projectNo) {
+                    if (!name || name === 'null' || name === '-') return;
+                    const key = `${category}|${name}`;
+                    if (!needs[key]) {
+                        needs[key] = { category, name, total: 0, projects: [] };
+                    }
+                    needs[key].total += qty;
+                    if (!needs[key].projects.includes(projectNo)) {
+                        needs[key].projects.push(projectNo);
+                    }
+                }
+
+                activeProjects.forEach(p => {
+                    const comps = p.components || {};
+                    const inputs = p.inputs || {};
+
+                    // Cylinder
+                    if (p.selected_cylinder) {
+                        addNeed('Silindir', p.selected_cylinder, parseInt(inputs.cylinderCount || 1), p.project_number);
+                    }
+
+                    // Motor
+                    addNeed('Motor', comps.motor, 1, p.project_number);
+
+                    // Pump
+                    addNeed('Pompa', comps.pump, 1, p.project_number);
+
+                    // Main Valve
+                    addNeed('Valf', comps.mainValve, 1, p.project_number);
+
+                    // Power Unit
+                    if (comps.powerUnit) {
+                        addNeed('Güç Ünitesi', comps.powerUnit, 1, p.project_number);
+                    }
+
+                    // Accessories
+                    if (comps.allAccessories && Array.isArray(comps.allAccessories)) {
+                        comps.allAccessories.forEach(acc => {
+                            addNeed('Aksesuar', acc, 1, p.project_number);
+                        });
+                    }
+                });
+
+                // Render Stats (Top 3 items needed)
+                const sortedNeeds = Object.values(needs).sort((a, b) => b.total - a.total).slice(0, 3);
+                const statsHtml = sortedNeeds.map(item => `
+                    <div class="p-4 bg-slate-50 border rounded flex items-center justify-between">
+                        <div>
+                            <div class="text-sm text-muted font-medium uppercase">${item.category}</div>
+                            <div class="text-lg font-bold text-primary truncate" title="${item.name}">${item.name}</div>
+                        </div>
+                        <div class="text-2xl font-bold bg-white border rounded px-3 py-1 shadow-sm">
+                            ${item.total}
+                        </div>
+                    </div>
+                `).join('');
+
+                document.getElementById('reportStats').innerHTML = statsHtml || '<div class="col-span-full text-center text-muted">Özetlenecek veri yok.</div>';
+
+                // Render Table
+                const tableHtml = Object.values(needs).sort((a, b) => a.category.localeCompare(b.category)).map(item => `
+                    <tr>
+                        <td><span class="badge badge-secondary">${item.category}</span></td>
+                        <td><strong>${item.name}</strong></td>
+                        <td class="text-center font-bold">${item.total}</td>
+                        <td>
+                            <div class="flex flex-wrap gap-1">
+                                ${item.projects.map(no => `<span class="badge badge-outline text-xs">${no}</span>`).join('')}
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+
+                document.getElementById('reportTableBody').innerHTML = tableHtml || '<tr><td colspan="4" class="text-center p-4">Listelenecek malzeme yok.</td></tr>';
+
+            } catch (e) {
+                document.getElementById('reportStats').innerHTML = `<div class="col-span-full text-center text-danger p-4">Hata: ${e.message}</div>`;
+                document.getElementById('reportTableBody').innerHTML = `<tr><td colspan="4" class="text-center p-4 text-danger">Hata: ${e.message}</td></tr>`;
+            }
+        }
+    </script>
+</body>
+
+</html>

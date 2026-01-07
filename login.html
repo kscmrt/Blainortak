@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş - Blain Hydraulics</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: var(--bg-body);
+            margin: 0;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem;
+            text-align: center;
+        }
+
+        .logo-area {
+            margin-bottom: 2rem;
+        }
+
+        .logo-area h1 {
+            font-size: 1.75rem;
+            color: var(--text-primary);
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .logo-area p {
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .login-btn {
+            width: 100%;
+            margin-top: 1rem;
+            justify-content: center;
+        }
+
+        .error-msg {
+            color: var(--danger);
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            min-height: 1.2em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card login-card">
+        <div class="logo-area">
+            <h1>Blain Hydraulics</h1>
+            <p>Proje Yönetim Sistemi</p>
+        </div>
+
+        <div class="form-grid">
+            <div class="input-group">
+                <label for="username">Kullanıcı Adı</label>
+                <input type="text" id="username" placeholder="Kullanıcı adınızı girin" autocomplete="username">
+            </div>
+            <div class="input-group">
+                <label for="password">Şifre</label>
+                <input type="password" id="password" placeholder="Şifrenizi girin" autocomplete="current-password">
+            </div>
+        </div>
+
+        <button id="loginBtn" class="btn btn-primary login-btn">
+            Giriş Yap
+        </button>
+
+        <div class="error-msg" id="errorMsg"></div>
+    </div>
+
+    <script src="db.js"></script><script src="auth.js"></script>
+    <script>
+        document.getElementById('loginBtn').addEventListener('click', handleLogin);
+
+        // Allow Enter key to submit
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleLogin();
+            }
+        });
+
+        function handleLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+
+            if (!username || !password) {
+                errorMsg.textContent = 'Lütfen tüm alanları doldurun.';
+                return;
+            }
+
+            const result = Auth.login(username, password);
+
+            if (result.success) {
+                window.location.href = 'index.html';
+            } else {
+                errorMsg.textContent = result.message;
+            }
+        }
+    </script>
+</body>
+
+</html>

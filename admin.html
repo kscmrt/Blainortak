@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Paneli - Blain Hydraulics</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script>
+        // Always keep sidebar collapsed
+        document.documentElement.classList.add('sidebar-collapsed');
+    </script>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img src="logo.png" alt="Blain" class="sidebar-logo-img">
+                    <h2>Blain Türkiye</h2>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-group">
+                    <p class="nav-label">Ana Menü</p>
+                    <button onclick="window.location.href='index.html'" class="nav-item">
+                        <i class="ri-home-line icon"></i>
+                        <span>Ana Sayfa</span>
+                    </button>
+                    <a href="summary_report.html" class="nav-item">
+                        <i class="ri-file-chart-line icon"></i>
+                        <span>İhtiyaç Raporu</span>
+                    </a>
+                </div>
+
+                <div class="nav-group">
+                    <p class="nav-label">Yönetim</p>
+                    <button class="nav-item active">
+                        <i class="ri-admin-line icon"></i>
+                        <span>Admin Paneli</span>
+                    </button>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="nav-item logout">
+                    <i class="ri-logout-box-line icon"></i>
+                    <span>Çıkış Yap</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <h1>Admin Paneli</h1>
+
+                </div>
+                <div class="header-right">
+                    <div class="user-profile">
+                        <div class="avatar">A</div>
+                        <div class="user-info">
+                            <span class="user-name">Admin</span>
+                            <span class="user-role">Yönetici</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-wrapper">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Yeni Kullanıcı Ekle</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-grid">
+                            <div class="input-group">
+                                <label for="newUsername">Kullanıcı Adı</label>
+                                <input type="text" id="newUsername" placeholder="Kullanıcı Adı">
+                            </div>
+                            <div class="input-group">
+                                <label for="newPassword">Şifre</label>
+                                <input type="password" id="newPassword" placeholder="Şifre">
+                            </div>
+                            <div class="input-group">
+                                <label for="newRole">Rol</label>
+                                <select id="newRole">
+                                    <option value="user">Kullanıcı</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-actions" style="margin-top: 1rem;">
+                            <button id="addUserBtn" class="btn btn-primary">
+                                Kullanıcı Ekle
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h3>Kayıtlı Kullanıcılar</h3>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Kullanıcı Adı</th>
+                                        <th>Rol</th>
+                                        <th>İşlem</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userList">
+                                    <!-- Users will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="db.js"></script>
+    <script src="auth.js"></script>
+    <script src="sidebar.js"></script>
+    <script>
+        // Auth Check
+        if (!Auth.checkAuth()) {
+            // checkAuth handles redirect
+        } else if (!Auth.isAdmin()) {
+            alert('Bu sayfaya erişim yetkiniz yok!');
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            Auth.logout();
+        });
+
+        async function renderUsers() {
+            try {
+                const users = await Auth.getUsers();
+                const container = document.getElementById('userList');
+
+                if (!users || users.length === 0) {
+                    container.innerHTML = '<tr><td colspan="3" class="text-center p-4">Kullanıcı bulunamadı.</td></tr>';
+                    return;
+                }
+
+                container.innerHTML = users.map(user => `
+                    <tr>
+                        <td><strong>${user.username}</strong></td>
+                        <td><span class="badge ${user.role === 'admin' ? 'badge-primary' : 'badge-secondary'}">${user.role}</span></td>
+                        <td>
+                            ${user.username !== 'admin' ?
+                        `<button class="btn btn-danger btn-sm" onclick="deleteUser('${user.username}')">Sil</button>` :
+                        '<span class="text-muted text-sm">(Sistem Yöneticisi)</span>'
+                    }
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error(e);
+                alert('Kullanıcı listesi yüklenemedi: ' + e.message);
+            }
+        }
+
+        async function deleteUser(username) {
+            if (confirm(`${username} kullanıcısını silmek istediğinize emin misiniz?`)) {
+                const result = await Auth.deleteUser(username);
+                if (result.success) {
+                    await renderUsers();
+                } else {
+                    alert(result.message);
+                }
+            }
+        }
+
+        document.getElementById('addUserBtn').addEventListener('click', async () => {
+            const username = document.getElementById('newUsername').value.trim();
+            const password = document.getElementById('newPassword').value;
+            const role = document.getElementById('newRole').value;
+
+            if (!username || !password) {
+                alert('Lütfen kullanıcı adı ve şifre girin.');
+                return;
+            }
+
+            const result = await Auth.addUser(username, password, role);
+            if (result.success) {
+                alert('Kullanıcı eklendi!');
+                document.getElementById('newUsername').value = '';
+                document.getElementById('newPassword').value = '';
+                await renderUsers();
+            } else {
+                alert(result.message);
+            }
+        });
+
+        // Initial render
+        renderUsers();
+    </script>
+</body>
+
+</html>
