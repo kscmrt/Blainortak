@@ -364,7 +364,13 @@ async function initializeProjectNumber() {
 }
 
 // Initialize project number on page load
+// Initialize project number on page load
 document.addEventListener('DOMContentLoaded', () => {
+    // Load materials from DB
+    if (typeof loadMaterialsFromDB === 'function') {
+        loadMaterialsFromDB().catch(e => console.error('Material init error:', e));
+    }
+
     // Don't await - let it run in background
     initializeProjectNumber().catch(e => console.error('Init error:', e));
 

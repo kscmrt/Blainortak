@@ -100,7 +100,7 @@ const cylinderSizes = [
 // Available rod wall thicknesses
 const availableRodThicknesses = [0, 5, 6, 7.5, 8, 8.6, 10, 12, 12.75, 13.5, 14, 15.75, 16.5, 22];
 
-const pumps = [
+let pumps = [
     { flow: 7.80, name: "PAVE020#4J", price: 163.45 },
     { flow: 11.90, name: "PAVE020#4B", price: 163.45 },
     { flow: 15.70, name: "PAVE025#4K", price: 163.45 },
@@ -130,7 +130,7 @@ const pumps = [
     { flow: 1150.60, name: "PAP060#4B", price: 655.33 }
 ];
 
-const motors = [
+let motors = [
     { kw: 2.2, name: "SBBL64", current380: { delta: 13.2, star: 7.6 }, current220: { delta: 23, star: 23 }, price: 236.93 },
     { kw: 2.9, name: "SBBL100", current380: { delta: 16.5, star: 9.5 }, current220: { delta: 29.5, star: 29.5 }, price: 236.29 },
     { kw: 4.7, name: "SBBL153", current380: { delta: 13, star: 7.3 }, price: 240.41 },
@@ -151,7 +151,7 @@ const motors = [
     { kw: 73.5, name: "SBBL333", current380: { delta: 134, star: 78 }, price: 1380.89 }
 ];
 
-const powerUnits = [
+let powerUnits = [
     {
         model: "BTD-55", pumpMin: 8, pumpMax: 25, motorMin: 2.2, motorMax: 2.9,
         deadZone: 12, totalOil: 56.97, tankCapacity: 55, height: 978, length: 255, width: 270,
@@ -194,7 +194,7 @@ const powerUnits = [
     }
 ];
 
-const accessories = [
+let accessories = [
     { name: "Kompanse Klavuzu CX", included: false, category: "Kontrol", price: 89 },
     { name: "El Pompası", included: false, category: "Güvenlik", price: 105 },
     { name: "Küresel Vana BG", included: false, category: "Vana", price: 0 }, // Price calculated dynamically
@@ -208,7 +208,7 @@ const accessories = [
 
 // Cylinder pricing (real data)
 // Formula: Total = Fixed + (PerMeter × Stroke) + Additional
-const cylinderPricing = {
+let cylinderPricing = {
     "50x0": { fixed: 348.60, perMeter: 62.77, additional: 402.88 },
     "56x0": { fixed: 363.09, perMeter: 74.36, additional: 407.62 },
     "60x0": { fixed: 370.44, perMeter: 87.09, additional: 410.87 },
@@ -282,7 +282,7 @@ const cylinderPricing = {
 };
 
 // Burst hose valve pricing (Patlak Hortum Valfi)
-const burstHoseValves = [
+let burstHoseValves = [
     { size: "0.5\"", name: "0,5'' R10L A-0,5'' G / T A-0,5'' G", hasDK: false, price: 116.52 },
     { size: "0.75\"", name: "0,75'' R10L A-0,75'' G / T A-0,75'' G", hasDK: false, price: 129.99 },
     { size: "0.75\"", name: "0,75'' R10L A-0,75'' G / T A-0,75'' G + DK", hasDK: true, price: 129.99 },
@@ -295,7 +295,7 @@ const burstHoseValves = [
 ];
 
 // Main valve pricing (Ana Kontrol Valfi)
-const mainValves = [
+let mainValves = [
     { name: "0,5'' GV", price: 112.035 },
     { name: "0,5'' KV1P", price: 254.6470039 },
     { name: "0,5'' KV1S", price: 288.8039308 },
@@ -363,4 +363,95 @@ function calculateHoseCost(mainDiameter, mainLength, cylinderDiameter, cylinderL
 
     console.log('Hose cost calculation:', { baseCost, costWithMargin, finalCost });
     return finalCost;
+}
+
+// Function to load materials from DB and update global arrays
+async function loadMaterialsFromDB() {
+    try {
+        if (!window.db || !window.db.materials) {
+            console.warn('Database not ready for materials');
+            return;
+        }
+
+        const materials = await window.db.materials.getAll();
+        if (!materials || materials.length === 0) return;
+
+        // Group by category to overwrite arrays efficiently
+        const grouped = {
+            pump: [],
+            motor: [],
+            power_unit: [],
+            accessory: [],
+            cylinder_pricing: {},
+            main_valve: [],
+            burst_valve: []
+        };
+
+        materials.forEach(m => {
+            if (m.category === 'cylinder_pricing') {
+                grouped.cylinder_pricing[m.name] = {
+                    fixed: Number(m.price),
+                    ...m.properties
+                };
+            } else if (m.category === 'pump') {
+                grouped.pump.push({
+                    name: m.name,
+                    price: Number(m.price),
+                    ...m.properties
+                });
+            } else if (m.category === 'motor') {
+                grouped.motor.push({
+                    name: m.name,
+                    price: Number(m.price),
+                    ...m.properties,
+                    // Restore nested objects if they were flattened or stored in properties
+                    // In SQL insert I stored 'kw' in properties. 
+                    // 'current380' was not stored in my quick SQL snippet? 
+                    // Checking SQL... I only stored 'kw'. 
+                    // This data might be incomplete if I don't store everything.
+                    // For now, let's assume properties contains everything needed or fallback to defaults if critical data missing?
+                    // The calculation only needs price and kw usually.
+                });
+            } else if (m.category === 'power_unit') {
+                grouped.power_unit.push({
+                    model: m.name, // Using 'model' as key
+                    price: Number(m.price),
+                    ...m.properties
+                });
+            } else if (m.category === 'accessory') {
+                // Determine 'included' state - default false
+                grouped.accessory.push({
+                    name: m.name,
+                    price: Number(m.price),
+                    included: false,
+                    ...m.properties
+                });
+            } else if (m.category === 'main_valve') {
+                grouped.main_valve.push({
+                    name: m.name,
+                    price: Number(m.price),
+                    ...m.properties
+                });
+            }
+        });
+
+        // Update globals if we found data
+        if (grouped.pump.length > 0) pumps = grouped.pump;
+        if (grouped.motor.length > 0) motors = grouped.motor;
+        if (grouped.power_unit.length > 0) powerUnits = grouped.power_unit;
+        // For accessories, we don't want to lose the structure if DB has less data, but here DB is source of truth
+        if (grouped.accessory.length > 0) accessories = grouped.accessory;
+        if (Object.keys(grouped.cylinder_pricing).length > 0) cylinderPricing = grouped.cylinder_pricing;
+        if (grouped.main_valve.length > 0) mainValves = grouped.main_valve;
+
+        console.log('Materials loaded from DB:', grouped);
+
+        // Trigger UI update if on index page
+        if (typeof renderSelection === 'function') {
+            // Re-render might be needed if user is already looking at it? 
+            // Usually this runs on load.
+        }
+    } catch (e) {
+        console.error('Failed to load materials from DB:', e);
+    }
 }

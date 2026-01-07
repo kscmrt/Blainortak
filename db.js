@@ -79,6 +79,22 @@ const db = {
         async getLogs(projectNumber) {
             return await db.query(`production_logs?project_number=eq.${projectNumber}&order=created_at.desc`);
         }
+    },
+
+    // Materials API
+    materials: {
+        async getAll() {
+            return await db.query('materials?select=*&order=category,name');
+        },
+        async create(materialData) {
+            return await db.query('materials', 'POST', materialData);
+        },
+        async update(id, updates) {
+            return await db.query(`materials?id=eq.${id}`, 'PATCH', updates);
+        },
+        async delete(id) {
+            return await db.query(`materials?id=eq.${id}`, 'DELETE');
+        }
     }
 };
 
