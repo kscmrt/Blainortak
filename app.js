@@ -322,6 +322,9 @@ async function generateProjectNumber() {
 
     try {
         // Fetch last project from DB
+        if (typeof window.db === 'undefined') {
+            throw new Error('Database not loaded');
+        }
         const lastProject = await db.projects.getLast();
         let nextCounter = 1;
 
@@ -341,22 +344,29 @@ async function generateProjectNumber() {
         return `${currentPrefix}-${String(nextCounter).padStart(4, '0')}`;
     } catch (e) {
         console.warn('Failed to generate sequential ID:', e);
-        // Fallback to timestamp if offline or error
-        return `${currentPrefix}-${Date.now().toString().slice(-4)}`;
+        // Fallback to 0001 if database not available
+        return `${currentPrefix}-0001`;
     }
 }
 
 async function initializeProjectNumber() {
     const projectNumberInput = document.getElementById('projectNumber');
     if (projectNumberInput) {
-        projectNumberInput.value = 'Yükleniyor...';
-        projectNumberInput.value = await generateProjectNumber();
+        try {
+            projectNumberInput.value = 'Yükleniyor...';
+            const number = await generateProjectNumber();
+            projectNumberInput.value = number;
+        } catch (e) {
+            console.error('Project number init failed:', e);
+            projectNumberInput.value = '2026-01-0001';
+        }
     }
 }
 
 // Initialize project number on page load
 document.addEventListener('DOMContentLoaded', () => {
-    initializeProjectNumber();
+    // Don't await - let it run in background
+    initializeProjectNumber().catch(e => console.error('Init error:', e));
 
     // Check if there is a pending project to load (from redirection)
     const projectToLoad = localStorage.getItem('projectToLoad');
@@ -392,7 +402,8 @@ async function resetToNewProject() {
         const projectNumber = await generateProjectNumber();
         document.getElementById('projectNumber').value = projectNumber;
     } catch (e) {
-        console.error(e);
+        console.error('Reset project number failed:', e);
+        document.getElementById('projectNumber').value = '2026-01-0001';
     }
 
     // Reset state to New Project
@@ -810,7 +821,7 @@ if (contentWrapper) {
 
 closeSidebar();
 showStatusModal('Başarılı', `Proje ${projectNumber} yüklendi!`, 'success');
-}
+
 
 async function loadProjectsList(searchTerm = '', statusFilter = 'all') {
     const tbody = document.getElementById('projectsTableBody');
